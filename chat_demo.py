@@ -11,10 +11,11 @@ import pygame
 import time
 import pyaudio
 import audioread
+import pickle
 language = 'de'
 
 #read the txt file contains OpenAI API key
-with open('openai_api_key.txt') as f:
+with open('openai_api_key.txt.gitignore') as f:
     api_key = f.readline()
 openai.api_key = api_key
 
@@ -67,6 +68,18 @@ def play_wav_once(file_name, speed=1.0):
         print(f"Error playing the .wav file: {e}")
     finally:
         pygame.mixer.quit()
+
+def save_response_to_pkl(chat):
+    with open("chat_log.pkl", 'wb') as file:
+        pickle.dump(chat, file)
+
+
+def save_response_to_txt(chat):        
+    with open("chat_log.txt", "w", encoding="utf-8") as file:
+        for chat_entry in chat:
+            role = chat_entry["role"]
+            content = chat_entry["content"]
+            file.write(f"{role}: {content}\n")
 
 
         
@@ -137,6 +150,8 @@ def interact_with_tutor(timeout):
         os.remove(audio_file)
         continue_flag = ask_to_continue()  # Prompt the user to continue or not
         if not continue_flag:
+            save_response_to_pkl(messages)
+            save_response_to_txt(messages)
             return chat_response  # Return the final chat response and exit the loop
             break
 
@@ -153,6 +168,7 @@ if __name__ == "__main__":
     tutor_response = interact_with_tutor(args.timeout)
     print('GPT response:')
     print(f'{tutor_response}')
+
 
 
 
