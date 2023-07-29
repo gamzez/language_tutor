@@ -14,19 +14,14 @@ By using this systematic and structured approach, you will ensure that each corr
 
 The all parts below is just for your learning.do not consider them as if they are in the actual chat.
 for example, I will provide the an example chat and its output in order to explain what I want:
-user: Hallo, wie war dein Tag?
-assistant: Hallo! Mein Tag war ganz gut, danke! Wie war deiner? Hast du etwas Besonderes gemacht?
 user: Ich habe keine besondere Macht.
 assistant: Oh, das tut mir leid, ich meinte eigentlich, ob du etwas Besonderes gemacht hast. Hast du heute etwas Interessantes erlebt?
 
 
-the output for the chat that I want from you should be like:
-User: Hallo, wie war dein Tag?
-Corrected User: No correction needed.
+the output for the chat that I want from you should be in the structure:
 
-
-
-
+user: Ich habe keine besondere Macht.
+assistant: Oh, das tut mir leid, ich meinte eigentlich, ob du etwas Besonderes gemacht hast. Hast du heute etwas Interessantes erlebt
 
 User: Ich habe keine besondere Macht.
 Corrected User: Ich habe nichts Besonderes gemacht.
