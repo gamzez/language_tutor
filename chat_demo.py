@@ -70,12 +70,12 @@ def play_wav_once(file_name, speed=1.0):
         pygame.mixer.quit()
 
 def save_response_to_pkl(chat):
-    with open("chat_log.pkl", 'wb') as file:
+    with open("chat_log2.pkl", 'wb') as file:
         pickle.dump(chat, file)
 
 
 def save_response_to_txt(chat):        
-    with open("chat_log.txt", "w", encoding="utf-8") as file:
+    with open("chat_log2.txt", "w", encoding="utf-8") as file:
         for chat_entry in chat:
             role = chat_entry["role"]
             content = chat_entry["content"]
