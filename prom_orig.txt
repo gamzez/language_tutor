@@ -5,9 +5,6 @@ If there is no mistake, write "No Error". Ignore punctuation errors (missing com
 You should approach this task methodically, treat in a same way while correcting the speech between assistant and user.
 For each correction you make, you are also required to categorize the types of errors you found, provide clear explanations for the corrections, and offer an example of the corrected usage in context.
 
-assistant: ...
-user: ....
-
 User: The original incorrect sentence from the user
 Corrected User: The corrected version of the sentence
 Error Type: The type of error found in the original sentence
@@ -22,13 +19,13 @@ for example, I will provide the an example chat and its output in order to expla
 assistant: Oh, das tut mir leid, ich meinte eigentlich, ob du etwas Besonderes gemacht hast. Hast du heute etwas Interessantes erlebt?
 user: Ich habe keine besondere Macht.
 
-the output for the chat that I want from you should be in the structure:
+the output for the chat that I want from you should be in the structure, first you should give the dialog anf follow the correction:
 
 assistant: Oh, das tut mir leid, ich meinte eigentlich, ob du etwas Besonderes gemacht hast. Hast du heute etwas Interessantes erlebt?
 user: Ich habe keine besondere Macht.
 
 User: Ich habe keine besondere Macht.
-Corrected version: Ich habe nichts Besonderes gemacht.
+Corrected User: Ich habe nichts Besonderes gemacht.
 Error Type: Wrong Vocabulary Use
 Explanation: The word "Macht" translates to "power". The correct word is "gemacht" meaning "done".
 Example: Er hat etwas Besonderes gemacht. (He has done something special.)
