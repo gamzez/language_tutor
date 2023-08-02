@@ -110,7 +110,7 @@ def get_voice_command(timeout):
     
 
 
-def ask_to_continue():
+'''def ask_to_continue():
     while True:
         # Ask the user if they want to continue conversation
         continue_flag = input("Do you want to continue to edit? Please enter 'y' or 'n': ")
@@ -123,16 +123,27 @@ def ask_to_continue():
         else:
             print("Invalid input. Please enter 'y' or 'n'.")
 
-
+'''
+''''
 
 def ask_to_continue():
     while True:
         # If 'y' is being held down, return True, user is talking
         if keyboard.is_pressed('y'):
             return True
+            break
         else:
             return False
-
+            break
+        '''
+def ask_to_continue():
+    while True:  # making a loop
+        try:  # used try so that if user pressed other than the given key error will not be shown
+            if keyboard.is_pressed('q'):  # if key 'q' is pressed 
+                return True
+                break  # finishing the loop
+        except:
+            break  
 
 
 def interact_with_tutor(timeout):
