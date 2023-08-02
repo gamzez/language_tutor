@@ -107,7 +107,7 @@ def get_voice_command(timeout):
         os.remove(temp_wav.name)
 
         return text
-    
+
 
 
 '''def ask_to_continue():
