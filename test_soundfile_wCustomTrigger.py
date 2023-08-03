@@ -1,5 +1,14 @@
 import keyboard
 import queue
+import threading
+import argparse
+import tempfile
+import queue
+import sys
+import sounddevice as sd
+import soundfile as sf
+import numpy  
+
 class SpacebarPress(Exception):
     pass
 
@@ -10,16 +19,6 @@ def listen_for_spacebar():
                 raise SpacebarPress
     except SpacebarPress:
         return  # Just exit the function, which will stop the thread
-
-
-import threading
-import argparse
-import tempfile
-import queue
-import sys
-import sounddevice as sd
-import soundfile as sf
-import numpy  # Make sure NumPy is loaded before it is used in the callback
 
 
 def int_or_str(text):
@@ -59,11 +58,12 @@ args = parser.parse_args(remaining)
 q = queue.Queue()
 
 
-def callback(indata, frames, time, status):
+def callback(indata, frames, time, status): #it gets inputs from the inputStream object
     """This is called (from a separate thread) for each audio block."""
     if status:
         print(status, file=sys.stderr)
     q.put(indata.copy())
+
 
 try:
     if args.samplerate is None:
@@ -74,9 +74,9 @@ try:
         args.filename = tempfile.mktemp(prefix='delme_rec_unlimited_',
                                         suffix='.wav', dir='')
 
-    with sf.SoundFile(args.filename, mode='x', samplerate=args.samplerate,
+    with sf.SoundFile(args.filename, mode='x', samplerate=args.samplerate, #This line uses the soundfile.SoundFile class to open a sound file. It is opened in 'x' mode, which means that a new file will be created
                       channels=args.channels, subtype=args.subtype) as file:
-        with sd.InputStream(samplerate=args.samplerate, device=args.device,
+        with sd.InputStream(samplerate=args.samplerate, device=args.device,    #sounddevice.InputStream class to open an audio input stream.
                             channels=args.channels, callback=callback, blocksize=1024) as stream:
             print('#' * 80)
             print('press Spacebar to stop the recording')
