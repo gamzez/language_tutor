@@ -58,11 +58,12 @@ args = parser.parse_args(remaining)
 q = queue.Queue()
 
 
+#this function called automatically for each block of audio data that's captured from the input stream.
 def callback(indata, frames, time, status): #it gets inputs from the inputStream object
     """This is called (from a separate thread) for each audio block."""
     if status:
         print(status, file=sys.stderr)
-    q.put(indata.copy())
+    q.put(indata.copy())  # is a method for Python's queue object. It adds an item to the end of the queue. 
 
 
 try:
