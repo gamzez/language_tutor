@@ -12,8 +12,8 @@ import time
 import pyaudio
 import audioread
 import pickle
+import press2talk
 language = 'de'
-import keyboard
 
 #read the txt file contains OpenAI API key
 with open('openai_api_key.txt.gitignore') as f:
@@ -71,12 +71,12 @@ def play_wav_once(file_name, speed=1.0):
         pygame.mixer.quit()
 
 def save_response_to_pkl(chat):
-    with open("chat_log3.pkl", 'wb') as file:
+    with open("chat_logs/chat_log2.pkl", 'wb') as file:
         pickle.dump(chat, file)
 
 
 def save_response_to_txt(chat):        
-    with open("chat_log3.txt", "w", encoding="utf-8") as file:
+    with open("chat_logs/chat_log2.txt", "w", encoding="utf-8") as file:
         for chat_entry in chat:
             role = chat_entry["role"]
             content = chat_entry["content"]
@@ -107,10 +107,10 @@ def get_voice_command(timeout):
         os.remove(temp_wav.name)
 
         return text
+    
 
 
-
-'''def ask_to_continue():
+def ask_to_continue():
     while True:
         # Ask the user if they want to continue conversation
         continue_flag = input("Do you want to continue to edit? Please enter 'y' or 'n': ")
@@ -122,29 +122,6 @@ def get_voice_command(timeout):
             break
         else:
             print("Invalid input. Please enter 'y' or 'n'.")
-
-'''
-''''
-
-def ask_to_continue():
-    while True:
-        # If 'y' is being held down, return True, user is talking
-        if keyboard.is_pressed('y'):
-            return True
-            break
-        else:
-            return False
-            break
-        '''
-def ask_to_continue():
-    while True:  # making a loop
-        try:  # used try so that if user pressed other than the given key error will not be shown
-            if keyboard.is_pressed('q'):  # if key 'q' is pressed 
-                return True
-                break  # finishing the loop
-        except:
-            break  
-
 
 def interact_with_tutor(timeout):
     # Define the system role to set the behavior of the chat assistant
