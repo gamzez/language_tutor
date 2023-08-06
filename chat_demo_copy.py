@@ -34,7 +34,6 @@ def listen_for_spacebar():
     while True:
         if keyboard.is_pressed('space'):  # if key 'space' is pressed 
             recording = True
-            done_recording = False
         elif recording:  # if key 'space' was released after recording
             recording = False
             done_recording = True
@@ -103,18 +102,22 @@ def save_response_to_txt(chat):
             file.write(f"{role}: {content}\n")
 
 
-q = queue.Queue()
-#func start
-def callback(indata, frames, time, status):
-    """This is called (from a separate thread) for each audio block."""
-    if status:
-        print(status, file=sys.stderr)
-    q.put(indata.copy())
+
 #end
 
 
 def press2record(filename, subtype, channels, samplerate = 24000):
+
+    q = queue.Queue()
+    #func start
+    def callback(indata, frames, time, status):
+        """This is called (from a separate thread) for each audio block."""
+        if status:
+            print(status, file=sys.stderr)
+        q.put(indata.copy())
     global recording, done_recording
+    print(f"recording: {recording}")
+    print(f"done_recording: {done_recording}")
     try:
         if samplerate is None:
             device_info = sd.query_devices(args.device, 'input')
@@ -131,6 +134,8 @@ def press2record(filename, subtype, channels, samplerate = 24000):
                 print('#' * 80)
                 print('press Spacebar to start recording, release to stop')
                 print('#' * 80)
+                import time 
+                time.sleep(15)
 
                 # Start the listener on a separate thread
                 listener_thread = threading.Thread(target=listen_for_spacebar)
@@ -139,7 +144,6 @@ def press2record(filename, subtype, channels, samplerate = 24000):
                 while not done_recording:
                     while recording and not q.empty():
                         file.write(q.get())
-
     except KeyboardInterrupt:
         print('Interrupted by user')
     except Exception as e:
@@ -161,8 +165,6 @@ def get_voice_command():
     saved_file = press2record(filename="input_to_gpt.wav", subtype = args.subtype, channels = args.channels, samplerate = args.samplerate)
     print(f"file saved to {saved_file}")
     # Transcribe the temporary WAV file using Whisper
-    import time
-    time.sleep(15)
     result = audio_model.transcribe(saved_file, fp16=torch.cuda.is_available())
     text = result['text'].strip()
     # Delete the temporary WAV file

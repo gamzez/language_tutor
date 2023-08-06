@@ -54,7 +54,6 @@ def press2record(filename, subtype, channels, samplerate = 24000):
                 print('#' * 80)
                 print('press Spacebar to start recording, release to stop')
                 print('#' * 80)
-
                 # Start the listener on a separate thread
                 listener_thread = threading.Thread(target=listen_for_spacebar)
                 listener_thread.start()
@@ -70,7 +69,9 @@ def press2record(filename, subtype, channels, samplerate = 24000):
     return filename
 
 if __name__ == "__main__":
-
+    import os
+    if os.path.exists("input_to_gpt.wav"):
+        os.remove("input_to_gpt.wav")
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
         '-l', '--list-devices', action='store_true',
