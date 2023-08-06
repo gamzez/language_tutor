@@ -16,6 +16,7 @@ def listen_for_spacebar():
     while True:
         if keyboard.is_pressed('space'):  # if key 'space' is pressed 
             recording = True
+            done_recording = False
         elif recording:  # if key 'space' was released after recording
             recording = False
             done_recording = True
@@ -28,33 +29,6 @@ def int_or_str(text):
     except ValueError:
         return text
 
-parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument(
-    '-l', '--list-devices', action='store_true',
-    help='show list of audio devices and exit')
-args, remaining = parser.parse_known_args()
-if args.list_devices:
-    print(sd.query_devices())
-    parser.exit(0)
-parser = argparse.ArgumentParser(
-    description=__doc__,
-    formatter_class=argparse.RawDescriptionHelpFormatter,
-    parents=[parser])
-parser.add_argument(
-    'filename', nargs='?', metavar='FILENAME',
-    help='audio file to store recording to')
-parser.add_argument(
-    '-d', '--device', type=int_or_str,
-    help='input device (numeric ID or substring)')
-parser.add_argument(
-    '-r', '--samplerate', type=int, help='sampling rate')
-parser.add_argument(
-    '-c', '--channels', type=int, default=1, help='number of input channels')
-parser.add_argument(
-    '-t', '--subtype', type=str, help='sound file subtype (e.g. "PCM_24")')
-args = parser.parse_args(remaining)
-
-q = queue.Queue()
 
 def callback(indata, frames, time, status):
     """This is called (from a separate thread) for each audio block."""
@@ -62,32 +36,63 @@ def callback(indata, frames, time, status):
         print(status, file=sys.stderr)
     q.put(indata.copy())
 
-try:
-    if args.samplerate is None:
-        device_info = sd.query_devices(args.device, 'input')
-        args.samplerate = int(device_info['default_samplerate'])
+def press2record(filename, subtype, channels, samplerate = 24000):
+    global recording, done_recording
+    try:
+        if samplerate is None:
+            device_info = sd.query_devices(args.device, 'input')
+            samplerate = int(device_info['default_samplerate'])
+            print(int(device_info['default_samplerate']))
+        if filename is None:
+            filename = tempfile.mktemp(prefix='captured_audio',
+                                            suffix='.wav', dir='')
 
-    if args.filename is None:
-        args.filename = tempfile.mktemp(prefix='captured_audio',
-                                        suffix='.wav', dir='')
+        with sf.SoundFile(filename, mode='x', samplerate=samplerate,
+                        channels=channels, subtype=subtype) as file:
+            with sd.InputStream(samplerate=samplerate, device=args.device,
+                                channels=channels, callback=callback, blocksize=4096) as stream:
+                print('#' * 80)
+                print('press Spacebar to start recording, release to stop')
+                print('#' * 80)
 
-    with sf.SoundFile(args.filename, mode='x', samplerate=args.samplerate,
-                      channels=args.channels, subtype=args.subtype) as file:
-        with sd.InputStream(samplerate=args.samplerate, device=args.device,
-                            channels=args.channels, callback=callback, blocksize=1024) as stream:
-            print('#' * 80)
-            print('press Spacebar to start recording, release to stop')
-            print('#' * 80)
+                # Start the listener on a separate thread
+                listener_thread = threading.Thread(target=listen_for_spacebar)
+                listener_thread.start()
 
-            # Start the listener on a separate thread
-            listener_thread = threading.Thread(target=listen_for_spacebar)
-            listener_thread.start()
+                while not done_recording:
+                    while recording and not q.empty():
+                        file.write(q.get())
 
-            while not done_recording:
-                while recording and not q.empty():
-                    file.write(q.get())
+    except KeyboardInterrupt:
+        print('Interrupted by user')
+    except Exception as e:
+        parser.exit(type(e).__name__ + ': ' + str(e))
+    return filename
 
-except KeyboardInterrupt:
-    print('Interrupted by user')
-except Exception as e:
-    parser.exit(type(e).__name__ + ': ' + str(e))
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        '-l', '--list-devices', action='store_true',
+        help='show list of audio devices and exit')
+    args, remaining = parser.parse_known_args()
+    if args.list_devices:
+        print(sd.query_devices()) 
+        parser.exit(0)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        parents=[parser])
+    parser.add_argument(
+        '-d', '--device', type=int_or_str,
+        help='input device (numeric ID or substring)')
+    parser.add_argument(
+        '-r', '--samplerate', default=24000, type=int, help='sampling rate')
+    parser.add_argument(
+        '-c', '--channels', type=int, default=1, help='number of input channels')
+    parser.add_argument(
+        '-t', '--subtype', type=str, help='sound file subtype (e.g. "PCM_24")')
+    args = parser.parse_args()
+    print(args)
+    q = queue.Queue()
+    saved_file = press2record(filename="input_to_gpt.wav", subtype = args.subtype, channels = args.channels, samplerate = args.samplerate)

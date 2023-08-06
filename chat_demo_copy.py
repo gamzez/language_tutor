@@ -13,12 +13,32 @@ import pyaudio
 import audioread
 import pickle
 import press2talk
+import keyboard
+import queue
+import threading
+import sys
+import sounddevice as sd
+import soundfile as sf
 language = 'de'
 
 #read the txt file contains OpenAI API key
 with open('openai_api_key.txt.gitignore') as f:
     api_key = f.readline()
 openai.api_key = api_key
+
+recording = False  # The flag indicating whether we're currently recording
+done_recording = False  # Flag indicating the user has finished recording
+
+def listen_for_spacebar():
+    global recording, done_recording
+    while True:
+        if keyboard.is_pressed('space'):  # if key 'space' is pressed 
+            recording = True
+            done_recording = False
+        elif recording:  # if key 'space' was released after recording
+            recording = False
+            done_recording = True
+            break  # Exit the thread
 
       
 def get_sample_rate(file_name):
@@ -83,37 +103,79 @@ def save_response_to_txt(chat):
             file.write(f"{role}: {content}\n")
 
 
-        
-def get_voice_command(timeout):
-    r = sr.Recognizer()
-    with sr.Microphone(sample_rate=16000) as source:
-        # adjust for ambient noise
-        r.adjust_for_ambient_noise(source)
-        print("starts listening")
-        try:
-            # listen for speech for up to `timeout` seconds
-            audio = r.listen(source, timeout)
-        except sr.WaitTimeoutError:
-            print("Timeout: No speech detected.")
-            return
+q = queue.Queue()
+#func start
+def callback(indata, frames, time, status):
+    """This is called (from a separate thread) for each audio block."""
+    if status:
+        print(status, file=sys.stderr)
+    q.put(indata.copy())
+#end
 
-        # Save audio data to a temporary WAV file
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_wav:
-            temp_wav.write(audio.get_wav_data())
-        # Transcribe the temporary WAV file using Whisper
-        result = audio_model.transcribe(temp_wav.name, fp16=torch.cuda.is_available())
-        text = result['text'].strip()
-        # Delete the temporary WAV file
-        os.remove(temp_wav.name)
 
+def press2record(filename, subtype, channels, samplerate = 24000):
+    global recording, done_recording
+    try:
+        if samplerate is None:
+            device_info = sd.query_devices(args.device, 'input')
+            samplerate = int(device_info['default_samplerate'])
+            print(int(device_info['default_samplerate']))
+        # if filename is None:
+        #     filename = tempfile.mktemp(prefix='captured_audio',
+        #                                     suffix='.wav', dir='')
+
+        with sf.SoundFile(filename, mode='x', samplerate=samplerate,
+                        channels=channels, subtype=subtype) as file:
+            with sd.InputStream(samplerate=samplerate, device=args.device,
+                                channels=channels, callback=callback, blocksize=4096) as stream:
+                print('#' * 80)
+                print('press Spacebar to start recording, release to stop')
+                print('#' * 80)
+
+                # Start the listener on a separate thread
+                listener_thread = threading.Thread(target=listen_for_spacebar)
+                listener_thread.start()
+
+                while not done_recording:
+                    while recording and not q.empty():
+                        file.write(q.get())
+
+    except KeyboardInterrupt:
+        print('Interrupted by user')
+    except Exception as e:
+        parser.exit(type(e).__name__ + ': ' + str(e))
+    return filename
+
+
+def int_or_str(text):
+    """Helper function for argument parsing."""
+    try:
+        return int(text)
+    except ValueError:
         return text
+        
+def get_voice_command():
+    global done_recording, recording
+    done_recording = False
+    recording = False
+    saved_file = press2record(filename="input_to_gpt.wav", subtype = args.subtype, channels = args.channels, samplerate = args.samplerate)
+    print(f"file saved to {saved_file}")
+    # Transcribe the temporary WAV file using Whisper
+    import time
+    time.sleep(15)
+    result = audio_model.transcribe(saved_file, fp16=torch.cuda.is_available())
+    text = result['text'].strip()
+    # Delete the temporary WAV file
+    os.remove(saved_file)
+    print(f"text: {text}")
+    return text
     
 
 
 def ask_to_continue():
     while True:
         # Ask the user if they want to continue conversation
-        continue_flag = input("Do you want to continue to edit? Please enter 'y' or 'n': ")
+        continue_flag = input("Do you want to continue to edit? Please enter 'y' or 'n': ").strip()
         if continue_flag == "y":
             return True # Return True to indicate the user wants to continue editing
             break
@@ -130,7 +192,7 @@ def interact_with_tutor(timeout):
     ]
     while True:
         # Get the user's voice command
-        command = get_voice_command(timeout)  
+        command = get_voice_command()  
         print(command)
         # Add the user's command to the message history
         messages.append({"role": "user", "content": command})  
@@ -158,21 +220,24 @@ def interact_with_tutor(timeout):
 
             
 if __name__ == "__main__":
-
+    if os.path.exists("input_to_gpt.wav"):
+        os.remove("input_to_gpt.wav")
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="small", help="Model to use",
                         choices=["tiny", "base", "small", "medium", "large"])
     parser.add_argument("--timeout", default=2, type=float, help="Timeout for stopping transcription")
+    parser.add_argument('-d', '--device', type=int_or_str,help='input device (numeric ID or substring)')
+    parser.add_argument('-r', '--samplerate', default=24000, type=int, help='sampling rate')
+    parser.add_argument(
+        '-c', '--channels', type=int, default=1, help='number of input channels')
+    parser.add_argument(
+        '-t', '--subtype', type=str, help='sound file subtype (e.g. "PCM_24")')
     args = parser.parse_args()
     model = args.model # + ".en"
     audio_model = whisper.load_model(model)
     tutor_response = interact_with_tutor(args.timeout)
     print('GPT response:')
     print(f'{tutor_response}')
-
-
-
-
 
 
 
