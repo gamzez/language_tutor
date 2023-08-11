@@ -8,6 +8,7 @@ import sounddevice as sd
 import soundfile as sf
 import numpy
 
+
 recording = False  # The flag indicating whether we're currently recording
 done_recording = False  # Flag indicating the user has finished recording
 
