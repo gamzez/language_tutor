@@ -7,6 +7,7 @@ import sys
 import sounddevice as sd
 import soundfile as sf
 import numpy
+import time
 
 
 recording = False  # The flag indicating whether we're currently recording
@@ -23,7 +24,7 @@ def listen_for_spacebar():
             recording = False
             done_recording = True
             break  # Exit the thread
-
+        time.sleep(0.01)
 def int_or_str(text):
     """Helper function for argument parsing."""
     try:
@@ -34,9 +35,10 @@ def int_or_str(text):
 
 def callback(indata, frames, time, status):
     """This is called (from a separate thread) for each audio block."""
-    if status:
-        print(status, file=sys.stderr)
-    q.put(indata.copy())
+    if recording:  # Only record if the recording flag is set
+        if status:
+            print(status, file=sys.stderr)
+        q.put(indata.copy())
 
 def press2record(filename, subtype, channels, samplerate = 24000):
     global recording, done_recording
