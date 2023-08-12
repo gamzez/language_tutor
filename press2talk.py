@@ -16,6 +16,7 @@ def listen_for_spacebar():
     global recording, done_recording
     while True:
         if keyboard.is_pressed('space'):  # if key 'space' is pressed 
+            print("Space bar pressed!")
             recording = True
             done_recording = False
         elif recording:  # if key 'space' was released after recording
@@ -39,6 +40,8 @@ def callback(indata, frames, time, status):
 
 def press2record(filename, subtype, channels, samplerate = 24000):
     global recording, done_recording
+    recording = False
+    done_recording = False
     try:
         if samplerate is None:
             device_info = sd.query_devices(args.device, 'input')
