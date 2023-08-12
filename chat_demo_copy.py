@@ -12,13 +12,13 @@ import time
 import pyaudio
 import audioread
 import pickle
-import press2talk
 import keyboard
 import queue
 import threading
 import sys
 import sounddevice as sd
 import soundfile as sf
+import press2talk
 language = 'de'
 
 #read the txt file contains OpenAI API key
