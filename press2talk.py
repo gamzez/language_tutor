@@ -17,7 +17,7 @@ def listen_for_spacebar():
     global recording, done_recording
     while True:
         if keyboard.is_pressed('space'):  # if key 'space' is pressed 
-            print("Space bar pressed!")
+            #print("Space bar pressed!")
             recording = True
             done_recording = False
         elif recording:  # if key 'space' was released after recording
@@ -41,6 +41,7 @@ def callback(indata, frames, time, status):
         q.put(indata.copy())
 
 def press2record(filename, subtype, channels, samplerate = 24000):
+    print("subtype: ", args.device)
     global recording, done_recording
     recording = False
     done_recording = False

@@ -154,14 +154,13 @@ def interact_with_tutor(timeout):
             save_response_to_txt(messages)
             return chat_response  # Return the final chat response and exit the loop
             break
-
             
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="small", help="Model to use",
                         choices=["tiny", "base", "small", "medium", "large"])
-    parser.add_argument("--timeout", default=2, type=float, help="Timeout for stopping transcription")
+    parser.add_argument("--timeout", default=3, type=float, help="Timeout for stopping transcription")
     args = parser.parse_args()
     model = args.model # + ".en"
     audio_model = whisper.load_model(model)

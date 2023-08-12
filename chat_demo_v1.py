@@ -1,3 +1,4 @@
+## ask_to_continue ve press2recordun ikisi de var. 
 import speech_recognition as sr
 import whisper
 import numpy as np
@@ -18,7 +19,6 @@ import threading
 import sys
 import sounddevice as sd
 import soundfile as sf
-import press2talk
 language = 'de'
 
 #read the txt file contains OpenAI API key
@@ -34,12 +34,13 @@ def listen_for_spacebar():
     while True:
         if keyboard.is_pressed('space'):  # if key 'space' is pressed 
             recording = True
+            done_recording = False
         elif recording:  # if key 'space' was released after recording
             recording = False
             done_recording = True
             break  # Exit the thread
+        time.sleep(0.01)
 
-      
 def get_sample_rate(file_name):
     with audioread.audio_open(file_name) as audio_file:
         return audio_file.samplerate
@@ -50,6 +51,13 @@ def read_wav_file(file_name):
         for buf in audio_file:
             audio_data += buf
     return audio_data
+
+def callback(indata, frames, time, status):
+    """This is called (from a separate thread) for each audio block."""
+    if recording:  # Only record if the recording flag is set
+        if status:
+            print(status, file=sys.stderr)
+        q.put(indata.copy())
 
 def play_wav_once(file_name, speed=1.0):
     pygame.init()
@@ -107,25 +115,17 @@ def save_response_to_txt(chat):
 
 
 def press2record(filename, subtype, channels, samplerate = 24000):
-
-    q = queue.Queue()
-    #func start
-    def callback(indata, frames, time, status):
-        """This is called (from a separate thread) for each audio block."""
-        if status:
-            print(status, file=sys.stderr)
-        q.put(indata.copy())
     global recording, done_recording
-    print(f"recording: {recording}")
-    print(f"done_recording: {done_recording}")
+    recording = False
+    done_recording = False
     try:
         if samplerate is None:
             device_info = sd.query_devices(args.device, 'input')
             samplerate = int(device_info['default_samplerate'])
             print(int(device_info['default_samplerate']))
-        # if filename is None:
-        #     filename = tempfile.mktemp(prefix='captured_audio',
-        #                                     suffix='.wav', dir='')
+        if filename is None:
+            filename = tempfile.mktemp(prefix='captured_audio',
+                                            suffix='.wav', dir='')
 
         with sf.SoundFile(filename, mode='x', samplerate=samplerate,
                         channels=channels, subtype=subtype) as file:
@@ -134,9 +134,6 @@ def press2record(filename, subtype, channels, samplerate = 24000):
                 print('#' * 80)
                 print('press Spacebar to start recording, release to stop')
                 print('#' * 80)
-                import time 
-                time.sleep(15)
-
                 # Start the listener on a separate thread
                 listener_thread = threading.Thread(target=listen_for_spacebar)
                 listener_thread.start()
@@ -144,6 +141,7 @@ def press2record(filename, subtype, channels, samplerate = 24000):
                 while not done_recording:
                     while recording and not q.empty():
                         file.write(q.get())
+
     except KeyboardInterrupt:
         print('Interrupted by user')
     except Exception as e:
@@ -162,6 +160,7 @@ def get_voice_command():
     global done_recording, recording
     done_recording = False
     recording = False
+
     saved_file = press2record(filename="input_to_gpt.wav", subtype = args.subtype, channels = args.channels, samplerate = args.samplerate)
     print(f"file saved to {saved_file}")
     # Transcribe the temporary WAV file using Whisper
@@ -187,12 +186,14 @@ def ask_to_continue():
         else:
             print("Invalid input. Please enter 'y' or 'n'.")
 
-def interact_with_tutor(timeout):
+def interact_with_tutor():
     # Define the system role to set the behavior of the chat assistant
     messages = [
         {"role": "system", "content" : "Du bist Anna, meine deutsche Lernpartnerin. Du wirst mit mir chatten, als wärst du Ende 20. Das Thema ist das Leben in Deutschland. Ihre Antworten werden kurz und einfach sein. Mein Niveau ist B1, stellen Sie Ihre Satzkomplexität auf mein Niveau ein. Versuche immer, mich zum Reden zu bringen, indem du Fragen stellst, und vertiefe den Chat immer."}
     ]
+    print("interact with tutor")
     while True:
+
         # Get the user's voice command
         command = get_voice_command()  
         print(command)
@@ -237,12 +238,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     model = args.model # + ".en"
     audio_model = whisper.load_model(model)
-    tutor_response = interact_with_tutor(args.timeout)
+    q = queue.Queue()
+    tutor_response = interact_with_tutor()
     print('GPT response:')
     print(f'{tutor_response}')
-
-
-
-
-
 
