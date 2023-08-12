@@ -1,9 +1,12 @@
-## ask_to_continue ve press2recordun ikisi de var. 
+## ask_to_continue ve press2recordun ikisi de var.
+import warnings
+warnings.filterwarnings("ignore")
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import speech_recognition as sr
 import whisper
 import numpy as np
 import tempfile
-import os
 import torch
 import openai
 import argparse
@@ -64,14 +67,14 @@ def callback(indata, frames, time, status):
             print(status, file=sys.stderr)
         q.put(indata.copy())
 
-def play_wav_once(file_name, speed=1.0):
+def play_wav_once(file_name, sample_rate, speed=1.0):
     pygame.init()
     pygame.mixer.init()
 
     try:
         # Read the .wav file using audioread
         audio_data = read_wav_file(file_name)
-        sample_rate = 26400 #get_sample_rate(file_name)
+        #sample_rate = 26400 #get_sample_rate(file_name)
         # Convert the raw audio data to a NumPy array
         audio_array = np.frombuffer(audio_data, dtype=np.int16)
 
@@ -113,10 +116,6 @@ def save_response_to_txt(chat):
             role = chat_entry["role"]
             content = chat_entry["content"]
             file.write(f"{role}: {content}\n")
-
-
-
-#end
 
 
 def press2record(filename, subtype, channels, samplerate=24000):
@@ -166,6 +165,7 @@ def get_voice_command():
     recording = False
 
     saved_file = press2record(filename="input_to_gpt.wav", subtype = args.subtype, channels = args.channels, samplerate = args.samplerate)
+    
     if saved_file == -1:
         return -1
     # Transcribe the temporary WAV file using Whisper
@@ -173,7 +173,7 @@ def get_voice_command():
     text = result['text'].strip()
     # Delete the temporary WAV file
     os.remove(saved_file)
-    print(f"text: {text}")
+    print(f"\nYou: {text} \n")
     return text
     
 
@@ -182,7 +182,6 @@ def interact_with_tutor():
     messages = [
         {"role": "system", "content" : "Du bist Anna, meine deutsche Lernpartnerin. Du wirst mit mir chatten, als wärst du Ende 20. Das Thema ist das Leben in Deutschland. Ihre Antworten werden kurz und einfach sein. Mein Niveau ist B1, stellen Sie Ihre Satzkomplexität auf mein Niveau ein. Versuche immer, mich zum Reden zu bringen, indem du Fragen stellst, und vertiefe den Chat immer."}
     ]
-    print("interact with tutor")
     while True:
 
         # Get the user's voice command
@@ -200,13 +199,13 @@ def interact_with_tutor():
         )  
         
         chat_response = completion.choices[0].message.content  # Extract the response from the completion
-        print(f'ChatGPT: {chat_response}')  # Print the assistant's response
+        print(f'ChatGPT: {chat_response} \n')  # Print the assistant's response
         messages.append({"role": "assistant", "content": chat_response})  # Add the assistant's response to the message history
         myobj = gTTS(text=messages[-1]['content'],tld="de", lang=language, slow=False)
         myobj.save("/Users/gamze/Desktop/language_tutor/welcome.wav")
         current_dir = os.getcwd()
         audio_file = '/Users/gamze/Desktop/language_tutor/welcome.wav'
-        play_wav_once(audio_file, 1.0)
+        play_wav_once(audio_file, args.samplerate, 1.0)
         os.remove(audio_file)
         
             
@@ -216,18 +215,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="small", help="Model to use",
                         choices=["tiny", "base", "small", "medium", "large"])
-    parser.add_argument("--timeout", default=2, type=float, help="Timeout for stopping transcription")
     parser.add_argument('-d', '--device', type=int_or_str,help='input device (numeric ID or substring)')
-    parser.add_argument('-r', '--samplerate', default=24000, type=int, help='sampling rate')
+    parser.add_argument('-r', '--samplerate', default=27000, type=int, help='sampling rate')
     parser.add_argument(
         '-c', '--channels', type=int, default=1, help='number of input channels')
     parser.add_argument(
         '-t', '--subtype', type=str, help='sound file subtype (e.g. "PCM_24")')
     args = parser.parse_args()
-    model = args.model # + ".en"
+    model = args.model 
     audio_model = whisper.load_model(model)
     q = queue.Queue()
     tutor_response = interact_with_tutor()
-    print('GPT response:')
-    print(f'{tutor_response}')
+    print ("\033[A                             \033[A")
 
