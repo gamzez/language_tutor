@@ -25,7 +25,7 @@ import soundfile as sf
 language = 'de'
 
 #read the txt file contains OpenAI API key
-with open('openai_api_key.txt.gitignore') as f:
+with open('openai_api_key.txt') as f:
     api_key = f.readline()
 openai.api_key = api_key
 
