@@ -201,8 +201,8 @@ def interact_with_tutor():
         chat_response = completion.choices[0].message.content  # Extract the response from the completion
         print(f'ChatGPT: {chat_response} \n')  # Print the assistant's response
         messages.append({"role": "assistant", "content": chat_response})  # Add the assistant's response to the message history
-        myobj = gTTS(text=messages[-1]['content'],tld="de", lang=language, slow=False)
-        myobj.save("/Users/gamze/Desktop/language_tutor/welcome.wav")
+        speech_object = gTTS(text=messages[-1]['content'],tld="de", lang=language, slow=False)
+        speech_object.save("/Users/gamze/Desktop/language_tutor/welcome.wav")
         current_dir = os.getcwd()
         audio_file = '/Users/gamze/Desktop/language_tutor/welcome.wav'
         play_wav_once(audio_file, args.samplerate, 1.0)
