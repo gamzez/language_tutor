@@ -24,14 +24,14 @@ import sounddevice as sd
 import soundfile as sf
 language = 'de'
 
-#read the txt file contains OpenAI API key
+#Read the txt file contains OpenAI API key
 with open('openai_api_key.txt') as f:
     api_key = f.readline()
 openai.api_key = api_key
 
-recording = False  # The flag indicating whether we're currently recording
-done_recording = False  # Flag indicating the user has finished recording
-stop_recording = False
+recording = False       # Indicates whether the system is currently recording audio
+done_recording = False  # Indicates that the user has completed recording a voice command 
+stop_recording = False  # Indicates that the user wants to exit the conversation
 
 def listen_for_keys():
     global recording, done_recording, stop_recording
