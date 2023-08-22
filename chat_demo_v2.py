@@ -52,10 +52,12 @@ def listen_for_keys():
 
 
 def get_sample_rate(file_name):
+    # Function to get the sample rate of an audio file.
     with audioread.audio_open(file_name) as audio_file:
         return audio_file.samplerate
 
 def read_wav_file(file_name):
+    # Function to read a WAV file and return its audio data.
     with audioread.audio_open(file_name) as audio_file:
         audio_data = b""
         for buf in audio_file:
@@ -63,13 +65,14 @@ def read_wav_file(file_name):
     return audio_data
 
 def callback(indata, frames, time, status):
-    """This is called (from a separate thread) for each audio block."""
+    # Function called for each audio block during recording.
     if recording:  # Only record if the recording flag is set
         if status:
             print(status, file=sys.stderr)
-        q.put(indata.copy())
+        q.put(indata.copy())  # Store the audio data
 
 def play_wav_once(file_name, sample_rate, speed=1.0):
+    # Function to play a WAV file once at a given sample rate and speed.
     pygame.init()
     pygame.mixer.init()
 
@@ -158,7 +161,6 @@ def press2record(filename, subtype, channels, samplerate=24000):
 
 
 def int_or_str(text):
-    """Helper function for argument parsing."""
     try:
         return int(text)
     except ValueError:
@@ -189,12 +191,9 @@ def get_voice_command():
 
     return text  # Return the transcribed text
 
-  def interact_with_tutor():
-    """
-    Function to facilitate the interaction with the language tutor.
-    It captures the user's voice command, transcribes it, passes it to the chat assistant, and plays back the response.
-    """
 
+
+def interact_with_tutor():
     # Define the system role to set the behavior of the chat assistant
     messages = [
         {"role": "system", "content": "Du bist Anna, meine deutsche Lernpartnerin. Du wirst mit mir chatten, als wärst du Ende 20. Das Thema ist das Leben in Deutschland. Ihre Antworten werden kurz und einfach sein. Mein Niveau ist B1, stellen Sie Ihre Satzkomplexität auf mein Niveau ein. Versuche immer, mich zum Reden zu bringen, indem du Fragen stellst, und vertiefe den Chat immer."}
@@ -235,7 +234,6 @@ def get_voice_command():
         play_wav_once(audio_file, args.samplerate, 1.0)
         os.remove(audio_file)  # Remove the temporary audio file
 
-        
             
 if __name__ == "__main__":
     if os.path.exists("input_to_gpt.wav"):
