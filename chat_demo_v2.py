@@ -34,20 +34,22 @@ done_recording = False  # Indicates that the user has completed recording a voic
 stop_recording = False  # Indicates that the user wants to exit the conversation
 
 def listen_for_keys():
+    # Function to listen for key presses to control recording
     global recording, done_recording, stop_recording
     while True:
-        if keyboard.is_pressed('space'):  # if key 'space' is pressed
+        if keyboard.is_pressed('space'):  # Start recording on spacebar press
             stop_recording = False
             recording = True
             done_recording = False
-        elif keyboard.is_pressed('esc'):  # if key 'esc' is pressed
+        elif keyboard.is_pressed('esc'):  # Stop recording on 'esc' press
             stop_recording = True
-            break  # Exit the thread
-        elif recording:  # if key 'space' was released after recording
+            break
+        elif recording:  # Stop recording on spacebar release
             recording = False
             done_recording = True
-            break  # Exit the thread
+            break
         time.sleep(0.01)
+
 
 def get_sample_rate(file_name):
     with audioread.audio_open(file_name) as audio_file:
@@ -117,21 +119,23 @@ def save_response_to_txt(chat):
             content = chat_entry["content"]
             file.write(f"{role}: {content}\n")
 
-
 def press2record(filename, subtype, channels, samplerate=24000):
+    # Function to handle recording when a key is pressed
     global recording, done_recording, stop_recording
     stop_recording = False
     recording = False
     done_recording = False
     try:
+        # Determine the samplerate if not provided
         if samplerate is None:
             device_info = sd.query_devices(None, 'input')
             samplerate = int(device_info['default_samplerate'])
             print(int(device_info['default_samplerate']))
+        # Create a temporary filename if not provided
         if filename is None:
             filename = tempfile.mktemp(prefix='captured_audio',
                                        suffix='.wav', dir='')
-
+        # Open the sound file for writing
         with sf.SoundFile(filename, mode='x', samplerate=samplerate,
                           channels=channels, subtype=subtype) as file:
             with sd.InputStream(samplerate=samplerate, device=None,
@@ -139,10 +143,11 @@ def press2record(filename, subtype, channels, samplerate=24000):
                 print('press Spacebar to start recording, release to stop, or press Esc to exit')
                 listener_thread = threading.Thread(target=listen_for_keys)  # Start the listener on a separate thread
                 listener_thread.start()
+                # Write the recorded audio to the file
                 while not done_recording and not stop_recording:
                     while recording and not q.empty():
                         file.write(q.get())
-
+        # Return -1 if recording is stopped
         if stop_recording:
             return -1
 
@@ -160,53 +165,76 @@ def int_or_str(text):
         return text
         
 def get_voice_command():
+    # Function to capture and transcribe the user's voice command.
     global done_recording, recording
     done_recording = False
     recording = False
 
-    saved_file = press2record(filename="input_to_gpt.wav", subtype = args.subtype, channels = args.channels, samplerate = args.samplerate)
+    # Call the press2record function to capture the user's voice command
+    saved_file = press2record(filename="input_to_gpt.wav", subtype=args.subtype, channels=args.channels, samplerate=args.samplerate)
     
+    # return -1 if recording was stopped
     if saved_file == -1:
         return -1
+
     # Transcribe the temporary WAV file using Whisper
     result = audio_model.transcribe(saved_file, fp16=torch.cuda.is_available())
     text = result['text'].strip()
+
     # Delete the temporary WAV file
     os.remove(saved_file)
-    print(f"\nYou: {text} \n")
-    return text
-    
 
-def interact_with_tutor():
+    # Print the transcribed text
+    print(f"\nYou: {text} \n")
+
+    return text  # Return the transcribed text
+
+  def interact_with_tutor():
+    """
+    Function to facilitate the interaction with the language tutor.
+    It captures the user's voice command, transcribes it, passes it to the chat assistant, and plays back the response.
+    """
+
     # Define the system role to set the behavior of the chat assistant
     messages = [
-        {"role": "system", "content" : "Du bist Anna, meine deutsche Lernpartnerin. Du wirst mit mir chatten, als wärst du Ende 20. Das Thema ist das Leben in Deutschland. Ihre Antworten werden kurz und einfach sein. Mein Niveau ist B1, stellen Sie Ihre Satzkomplexität auf mein Niveau ein. Versuche immer, mich zum Reden zu bringen, indem du Fragen stellst, und vertiefe den Chat immer."}
+        {"role": "system", "content": "Du bist Anna, meine deutsche Lernpartnerin. Du wirst mit mir chatten, als wärst du Ende 20. Das Thema ist das Leben in Deutschland. Ihre Antworten werden kurz und einfach sein. Mein Niveau ist B1, stellen Sie Ihre Satzkomplexität auf mein Niveau ein. Versuche immer, mich zum Reden zu bringen, indem du Fragen stellst, und vertiefe den Chat immer."}
     ]
-    while True:
 
+    while True:
         # Get the user's voice command
-        command = get_voice_command()  
+        command = get_voice_command()
         if command == -1:
+            # Save the chat logs and exit if recording is stopped
             save_response_to_pkl(messages)
             save_response_to_txt(messages)
             return "Chat has been stopped."
+
         # Add the user's command to the message history
-        messages.append({"role": "user", "content": command})  
+        messages.append({"role": "user", "content": command})
+
         # Generate a response from the chat assistant
         completion = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages
-        )  
-        
-        chat_response = completion.choices[0].message.content  # Extract the response from the completion
+        )
+
+        # Extract the response from the completion
+        chat_response = completion.choices[0].message.content
         print(f'ChatGPT: {chat_response} \n')  # Print the assistant's response
-        messages.append({"role": "assistant", "content": chat_response})  # Add the assistant's response to the message history
-        speech_object = gTTS(text=messages[-1]['content'],tld="de", lang=language, slow=False)
+
+        # Add the assistant's response to the message history
+        messages.append({"role": "assistant", "content": chat_response})
+
+        # Convert the text response to speech
+        speech_object = gTTS(text=messages[-1]['content'], tld="de", lang=language, slow=False)
         speech_object.save("/Users/gamze/Desktop/language_tutor/welcome.wav")
         current_dir = os.getcwd()
         audio_file = '/Users/gamze/Desktop/language_tutor/welcome.wav'
+
+        # Play the audio response
         play_wav_once(audio_file, args.samplerate, 1.0)
-        os.remove(audio_file)
+        os.remove(audio_file)  # Remove the temporary audio file
+
         
             
 if __name__ == "__main__":
