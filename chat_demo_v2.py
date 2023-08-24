@@ -196,7 +196,7 @@ def get_voice_command():
 def interact_with_tutor():
     # Define the system role to set the behavior of the chat assistant
     messages = [
-        {"role": "system", "content": "Du bist Anna, meine deutsche Lernpartnerin. Du wirst mit mir chatten, als wärst du Ende 20. Das Thema ist das Leben in Deutschland. Ihre Antworten werden kurz und einfach sein. Mein Niveau ist B1, stellen Sie Ihre Satzkomplexität auf mein Niveau ein. Versuche immer, mich zum Reden zu bringen, indem du Fragen stellst, und vertiefe den Chat immer."}
+        {"role": "system", "content": "Du bist Anna, meine deutsche Lernpartnerin. Du wirst mit mir chatten, als wärst du eine Freundin von mir. Ich werde dir sagen an welchem Thema ich reden wollte. Ihre Antworten werden kurz und einfach sein. Mein Niveau ist B1, stell deine Satzkomplexität auf mein Niveau ein. Versuche immer, mich zum Reden zu bringen, indem du Fragen stellst, und vertiefe den Chat immer."}
     ]
 
     while True:
@@ -221,7 +221,7 @@ def interact_with_tutor():
         chat_response = completion.choices[0].message.content
         print(f'ChatGPT: {chat_response} \n')  # Print the assistant's response
 
-        # Add the assistant's response to the message history
+        #Append the response to the messages with the role "assistant" to store the chat history.
         messages.append({"role": "assistant", "content": chat_response})
 
         # Convert the text response to speech
@@ -234,7 +234,7 @@ def interact_with_tutor():
         play_wav_once(audio_file, args.samplerate, 1.0)
         os.remove(audio_file)  # Remove the temporary audio file
 
-            
+         
 if __name__ == "__main__":
     if os.path.exists("input_to_gpt.wav"):
         os.remove("input_to_gpt.wav")
