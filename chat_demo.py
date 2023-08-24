@@ -196,7 +196,7 @@ def get_voice_command():
 def interact_with_tutor():
     # Define the system role to set the behavior of the chat assistant
     messages = [
-        {"role": "system", "content": "Du bist Anna, meine deutsche Lernpartnerin. Du wirst mit mir chatten, als wärst du eine Freundin von mir. Ich werde dir sagen an welchem Thema ich reden wollte. Ihre Antworten werden kurz und einfach sein. Mein Niveau ist B1, stell deine Satzkomplexität auf mein Niveau ein. Versuche immer, mich zum Reden zu bringen, indem du Fragen stellst, und vertiefe den Chat immer."}
+        {"role": "system", "content": " du bist Anna, meine deutsche Lernpartnerin. Du wirst mit mir chatten, als wärst du eine Freundin von mir. Nachdem du meine erste Frage beantwortest, fragst du mich, was ich heute vorhabe. Ich werde dir sagen an welchem Thema ich reden wollte. Ihre Antworten werden kurz und einfach sein. Mein Niveau ist B1, stell deine Satzkomplexität auf mein Niveau ein. Versuche immer, mich zum Reden zu bringen, indem du Fragen stellst, und vertiefe den Chat immer."}
     ]
 
     while True:
@@ -219,7 +219,7 @@ def interact_with_tutor():
 
         # Extract the response from the completion
         chat_response = completion.choices[0].message.content
-        print(f'ChatGPT: {chat_response} \n')  # Print the assistant's response
+        print(f'Anna: {chat_response} \n')  # Print the assistant's response
 
         #Append the response to the messages with the role "assistant" to store the chat history.
         messages.append({"role": "assistant", "content": chat_response})
