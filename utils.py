@@ -3,13 +3,10 @@ import warnings
 warnings.filterwarnings("ignore")
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
-import speech_recognition as sr
-import whisper
 import numpy as np
 import tempfile
 import torch
 import openai
-import argparse
 from gtts import gTTS
 import pygame
 import time
@@ -17,17 +14,10 @@ import pyaudio
 import audioread
 import pickle
 import keyboard
-import queue
 import threading
 import sys
 import sounddevice as sd
 import soundfile as sf
-language = 'de'
-
-#read the txt file contains OpenAI API key
-with open('openai_api_key.txt') as f:
-    api_key = f.readline()
-openai.api_key = api_key
 
 recording = False  # The flag indicating whether we're currently recording
 done_recording = False  # Flag indicating the user has finished recording
@@ -60,7 +50,7 @@ def read_wav_file(file_name):
             audio_data += buf
     return audio_data
 
-def callback(indata, frames, time, status):
+def callback(indata, frames, time, status, q):
     """This is called (from a separate thread) for each audio block."""
     if recording:  # Only record if the recording flag is set
         if status:
@@ -106,19 +96,23 @@ def play_wav_once(file_name, sample_rate, speed=1.0):
         pygame.mixer.quit()
 
 def save_response_to_pkl(chat):
-    with open("chat_logs/chat_log2.pkl", 'wb') as file:
+    with open("chat_logs/chat_log.pkl", 'wb') as file:
         pickle.dump(chat, file)
 
 
 def save_response_to_txt(chat):        
-    with open("chat_logs/chat_log2.txt", "w", encoding="utf-8") as file:
+    with open("chat_logs/chat_log.txt", "w", encoding="utf-8") as file:
         for chat_entry in chat:
             role = chat_entry["role"]
             content = chat_entry["content"]
             file.write(f"{role}: {content}\n")
 
 
-def press2record(filename, subtype, channels, samplerate=24000):
+def press2record(q, filename, subtype, channels, samplerate=24000):
+
+    def callback_with_q(indata, frames, time, status):
+        return callback(indata, frames, time, status, q)
+    
     global recording, done_recording, stop_recording
     stop_recording = False
     recording = False
@@ -135,7 +129,7 @@ def press2record(filename, subtype, channels, samplerate=24000):
         with sf.SoundFile(filename, mode='x', samplerate=samplerate,
                           channels=channels, subtype=subtype) as file:
             with sd.InputStream(samplerate=samplerate, device=None,
-                                channels=channels, callback=callback, blocksize=4096) as stream:
+                                channels=channels, callback=callback_with_q, blocksize=4096) as stream:
                 print('press Spacebar to start recording, release to stop, or press Esc to exit')
                 listener_thread = threading.Thread(target=listen_for_keys)  # Start the listener on a separate thread
                 listener_thread.start()
@@ -159,12 +153,12 @@ def int_or_str(text):
     except ValueError:
         return text
         
-def get_voice_command():
+def get_voice_command(args, q, audio_model):
     global done_recording, recording
     done_recording = False
     recording = False
 
-    saved_file = press2record(filename="input_to_gpt.wav", subtype = args.subtype, channels = args.channels, samplerate = args.samplerate)
+    saved_file = press2record(q, filename="input_to_gpt.wav", subtype = args.subtype, channels = args.channels, samplerate = args.samplerate)
     
     if saved_file == -1:
         return -1
@@ -178,16 +172,16 @@ def get_voice_command():
     return text
     
 
-def interact_with_tutor():
+def interact_with_tutor(args, q, language, audio_model):
     # Define the system role to set the behavior of the chat assistant
     messages = [
-        {"role": "system", "content" : "Du bist Anna, meine deutsch Tutor. Du wirst mit mir chatten, als wärst du eine Freundin von mir.Erst antworte auf meine Frage und fragt mich,wie geht's dir und dass was ich heute vorhabe. Ich werde dir sagen an welchem Thema ich reden wollte. Ihre Antworten werden kurz (circa 30-40 Wörter) und einfach sein. Mein Niveau ist B1, stell deine Satzkomplexität auf mein Niveau ein. Versuche immer, mich zum Reden zu bringen, indem du Fragen stellst, und vertiefe den Chat immer.Du beantwortest nur auf Deutsch"}
+        {"role": "system", "content" : "Du bist Anna, meine deutsch Tutor. Du wirst mit mir chatten, als wärst du eine Freundin von mir. Ich werde dir sagen an welchem Thema ich reden wollte. Ihre Antworten werden kurz (circa 30-40 Wörter) und einfach sein. Mein Niveau ist B1, stell deine Satzkomplexität auf mein Niveau ein. Versuche immer, mich zum Reden zu bringen, indem du Fragen stellst, und vertiefe den Chat immer.Du beantwortest nur auf Deutsch"}
     ]
 
     while True:
 
         # Get the user's voice command
-        command = get_voice_command()  
+        command = get_voice_command(args, q, audio_model)  
         if command == -1:
             save_response_to_pkl(messages)
             save_response_to_txt(messages)
@@ -204,28 +198,8 @@ def interact_with_tutor():
         print(f'ChatGPT: {chat_response} \n')  # Print the assistant's response
         messages.append({"role": "assistant", "content": chat_response})  # Add the assistant's response to the message history
         speech_object = gTTS(text=messages[-1]['content'],tld="de", lang=language, slow=False)
-        speech_object.save("/Users/gamze/Desktop/language_tutor/welcome.wav")
-        current_dir = os.getcwd()
-        audio_file = '/Users/gamze/Desktop/language_tutor/welcome.wav'
-        play_wav_once(audio_file, args.samplerate, 1.0)
-        os.remove(audio_file)
+        temporary_save_dir = "gtts.wav"
+        speech_object.save(temporary_save_dir)
+        play_wav_once(temporary_save_dir, args.samplerate, 1.0)
+        os.remove(temporary_save_dir)
       
-            
-if __name__ == "__main__":
-    if os.path.exists("input_to_gpt.wav"):
-        os.remove("input_to_gpt.wav")
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default="small", help="Model to use",
-                        choices=["tiny", "base", "small", "medium", "large"])
-    parser.add_argument('-d', '--device', type=int_or_str,help='input device (numeric ID or substring)')
-    parser.add_argument('-r', '--samplerate', default=27000, type=int, help='sampling rate')
-    parser.add_argument(
-        '-c', '--channels', type=int, default=1, help='number of input channels')
-    parser.add_argument(
-        '-t', '--subtype', type=str, help='sound file subtype (e.g. "PCM_24")')
-    args = parser.parse_args()
-    model = args.model 
-    audio_model = whisper.load_model(model)
-    q = queue.Queue()
-    tutor_response = interact_with_tutor()
-    print ("\033[A                             \033[A")
