@@ -1,0 +1,11 @@
+openai
+openai-whisper
+gTTS
+torch==2.0.1
+pygame==2.5.0
+PyAudio==0.2.13
+audioread==3.0.0
+keyboard==0.13.5
+sounddevice==0.4.6
+soundfile==0.12.1
+SpeechRecognition==3.10.0
